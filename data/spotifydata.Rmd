@@ -1,0 +1,130 @@
+---
+title: "Artist Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(spotifyr)
+library(tidyverse)
+```
+
+
+```{r}
+#setting up spotify api 
+Sys.setenv(SPOTIFY_CLIENT_ID = '7d579775eb7c4283b5e8a198fce27ec9')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'c9cd0fac1f5b49bb801e22cd1638356f')
+
+access_token <- get_spotify_access_token()
+```
+
+```{r, eval = FALSE}
+#taylor swift data
+taylor <- get_artist_audio_features('taylor swift') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(taylor, file = "taylor.csv")
+
+#carly rae jepsen data
+crj <- get_artist_audio_features('carly rae jepssn') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(crj, file = "crj.csv")
+
+#bon iver data
+iver <- get_artist_audio_features('bon iver') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(iver, file = "iver.csv")
+
+#hozier data
+hozier <- get_artist_audio_features('hozier') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(hozier, file = "hozier.csv")
+
+#ariana grande data
+ariana <- get_artist_audio_features('ariana grande') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(ariana, file = "ariana.csv")
+
+#lorde data 
+lorde <- get_artist_audio_features('lorde') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(lorde, file = "lorde.csv")
+
+#beach bunny data
+beachbunny <- get_artist_audio_features('beach bunny') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(beachbunny, file = "beachbunny.csv")
+
+#dua lipa data
+dua <- get_artist_audio_features('dua lipa') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(dua, file = "dua.csv")
+
+#drake data
+drake <- get_artist_audio_features('drake') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(drake, file = "drake.csv")
+
+#kanye data
+kanye <- get_artist_audio_features('kanye') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(kanye, file = "kanye.csv")
+
+#the chicks data
+chicks <- get_artist_audio_features('the chicks') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(chicks, file = "chicks.csv")
+
+#tim mcgraw
+mcgraw <- get_artist_audio_features('tim mcgraw') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(mcgraw, file = "mcgraw.csv")
+
+#charli xcx data
+charli <- get_artist_audio_features('charli xcx') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(charli, file = "charli.csv")
+
+#beatles
+beatles <- get_artist_audio_features('the beatles') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(beatles, file = "beatles.csv")
+
+#simon and garfunkel
+sg <- get_artist_audio_features('simon & garfunkel') %>%
+  select(-album_images,
+         -artists,
+         -available_markets)
+write_csv(sg, file = "sg.csv")
+```
+
