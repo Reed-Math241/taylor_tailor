@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(spotifyr)
 library(tidyverse)
+library(readr)
+library(here)
 ```
 
 
@@ -99,13 +101,6 @@ chicks <- get_artist_audio_features('the chicks') %>%
          -available_markets)
 write_csv(chicks, file = "chicks.csv")
 
-#tim mcgraw
-mcgraw <- get_artist_audio_features('tim mcgraw') %>%
-  select(-album_images,
-         -artists,
-         -available_markets)
-write_csv(mcgraw, file = "mcgraw.csv")
-
 #charli xcx data
 charli <- get_artist_audio_features('charli xcx') %>%
   select(-album_images,
@@ -126,5 +121,59 @@ sg <- get_artist_audio_features('simon & garfunkel') %>%
          -artists,
          -available_markets)
 write_csv(sg, file = "sg.csv")
+```
+
+```{r}
+here::here()
+```
+
+```{r}
+#loading in data, filtering out live/special/deluxe albums
+taylor <- read_csv(here("data/taylor.csv")) %>%
+  filter(album_name %in% c("Taylor Swift", "Fearless", "Speak Now", "Red", 
+                           "1989", "reputation", "Lover", "folklore", "evermore"))
+
+crj <- read_csv(here("data/crj.csv")) %>%
+  filter(album_name %in% c("Tug of War", "Kiss", "Emotion", "EMOTION SIDE B +", 
+                           "Dedicated", "Dedicated Side B"))
+
+iver <- read_csv(here("data/iver.csv"))
+
+hozier <- read_csv(here("data/hozier.csv"))
+
+ariana <- read_csv(here("data/ariana.csv")) %>%
+  filter(album_name != "The Remix")
+
+lorde <- read_csv(here("data/lorde.csv")) %>%
+  filter(album_name != "Pure Heroine (Extended)")
+
+beachbunny <- read_csv(here("data/beachbunny.csv"))
+
+dua <- read_csv(here("data/dua.csv")) %>%
+  filter(album_name %in% c("Dua Lipa", "Future Nostalgia"))
+
+drake <- read_csv(here("data/drake.csv"))
+
+kanye <- read_csv(here("data/kanye.csv")) %>%
+  filter(album_name != "Late Orchestration" &
+         album_name != "Graduation (Alternative Business Partners)" &
+         album_name != "Kanye West Presents Good Music Cruel Summer")
+
+chicks <- read_csv(here("data/chicks.csv")) %>%
+  filter(album_name != "DCX MMXVI Live" & album_name != "Top of the World Tour Live")
+
+charli <- read_csv(here("data/charli.csv"))
+
+beatles <- read_csv(here("data/beatles.csv"))
+
+sg <- read_csv(here("data/sg.csv")) %>%
+  filter(album_name %in% c("Wednesday Morning, 3 A.M.", "Sounds of Silence", 
+                           "Parsley, Sage, Rosemary And Thyme", "The Graduate", "Bookends", 
+                           "Bridge Over Troubled Water"))
+
+all <- do.call("rbind", list(ariana, beachbunny, beatles, charli, chicks, crj, drake,
+                             dua, hozier, iver, kanye, lorde, sg, taylor))
+
+write_csv(all, file = "all.csv")
 ```
 
