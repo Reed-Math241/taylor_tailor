@@ -22,9 +22,11 @@ all <- read_csv(here("data/all.csv"))
 #only keeping numeric var for pca
 all_pca <- all %>%
   select(danceability, energy, loudness, speechiness, acousticness, instrumentalness,
-         liveness, valence, tempo, duration_ms)
+         liveness, valence, tempo, duration_ms, time_signature)
 
-
+all_cluster <- all %>%
+  select(danceability, energy, loudness, speechiness, acousticness, instrumentalness,
+         liveness, valence, tempo, duration_ms, mode, time_signature, explicit)
 ```
 
 ```{r}
@@ -52,5 +54,17 @@ plot(pve, xlab = "Principal Component", ylab = "Proportion of Variance Explained
      ylim = c(0, 1), type = "b")
 plot(cumsum(pve), xlab = "Princple Component", ylab = "Cumulative Proportion of Variance Explained",
      ylim = c(0, 1), type = "b")
+```
+
+```{r}
+#k means with k = 7
+km.out = kmeans(all_cluster, centers = 7, nstart = 50)
+plot(all_cluster, col = (km.out$cluster + 1), main = "K-means Clustering Results With K=7",
+     pch = 20, cex = 2)
+
+#k means with k = 8
+km.out1 = kmeans(all_cluster, centers = 8, nstart = 50)
+plot(all_cluster, col = (km.out1$cluster + 1), main = "K-means Clustering Results With K=7",
+     pch = 20, cex = 2)
 ```
 
