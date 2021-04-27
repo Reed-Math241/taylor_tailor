@@ -1,0 +1,277 @@
+---
+title: "horse_race"
+author: "Paul Nguyen"
+date: "4/26/2021"
+output: pdf_document
+---
+
+Comparing different models to classify songs as made by Taylor Swift or not.
+
+Methods to compare:   
+-Logistic Regression  
+-LDA / QDA
+-Decision Tree
+-Random Forest
+
+New Things:   
+-Support Vector Machines    
+-Neural Nets
+
+#Loading the Data
+```{r data and libraries}
+library(tidyverse)
+library(ggplot2)
+library(MASS)
+library(tree)
+library(randomForest)
+library(e1071)
+all <- read_csv("data/all.csv")
+```
+
+#some wrangling
+```{r}
+full <- all %>%
+  mutate(taylor = artist_name == "Taylor Swift",
+         taylor = as.factor(taylor),
+         mode = as.factor(mode),
+         time_signature = as.factor(time_signature)) 
+full <- full[,(-c(1:7, 10, 19:20, 22, 25:36)) ]
+```
+
+#creating test and training sets
+```{r splitting data}
+set.seed(2)
+#test set of 200 observations
+test_index <- sample(1:nrow(full), size = 300)
+
+test <- full[test_index,]
+train <- full[-test_index,]
+
+test_full <- all[test_index,]
+
+```
+
+
+#logistic regression
+```{r logistic regression}
+cor(train[,-c(4,11, 13, 14)])
+logistic_reg <- glm(taylor ~ . ,data = train, family = binomial)
+
+summary(logistic_reg)
+
+#predictions on the test set
+logistic_pred <- data.frame(prob = predict(logistic_reg, newdata = test,
+                                           type = "response")) %>%
+  mutate(prediction = prob >= .5) %>%
+  cbind(original = test$taylor) %>%
+  mutate(correct = prediction == original)
+
+logistic_pred_all <- cbind(test_full, logistic_pred)
+
+track_log <- logistic_pred_all %>%
+  filter(correct == TRUE,
+         artist_name == "Taylor Swift")
+track_log$track_name
+
+
+#results
+table(logistic_pred$prediction, test$taylor)
+sum(logistic_pred$correct) / nrow(logistic_pred)
+log_errors <- data.frame(method = "logistic",
+                         overall = sum(logistic_pred$correct) / nrow(logistic_pred),
+                         type_1 = 5/(268+5),
+                         type_2 = 26/27)
+```
+
+The logistic regression identified the following variables as significant at the .05 level: energy (positive), mode (positive), speechiness (negative), acousticness (positive), liveness (negative), valence (negative), tempo (negative), duration (positive), explicit (negative). Note that this is in comparison to the other songs we've included in our sample and not music as a whole. 
+
+Results:    
+Logistic Regression has an accuracy rate of .9, which doesn't seem too bad, but when looking at the results table, most of this accuracy comes from correctly identifying when a song isn't made by Taylor Swift. Out of the 27 songs made by Taylor, logistic regression only identifies one correctly. This individual song is "long story short".
+
+#LDA
+```{r LDA}
+lda_reg <- lda(taylor ~ . ,data = train)
+
+lda_reg
+
+
+
+#predictions on the test set
+lda_pred <- data.frame(prob = predict(lda_reg, newdata = test)) %>%
+  mutate(prediction = prob.class) %>%
+  cbind(original = test$taylor) %>%
+  mutate(correct = prediction == original)
+
+lda_pred_all <- cbind(test_full, lda_pred)
+
+track_lda <- lda_pred_all %>%
+  filter(correct == TRUE,
+         artist_name == "Taylor Swift") 
+track_lda$track_name
+
+#results
+table(lda_pred$prediction, test$taylor)
+sum(lda_pred$correct) / nrow(lda_pred)
+lda_errors <- data.frame(method = "LDA",
+                         overall = sum(lda_pred$correct) / nrow(lda_pred),
+                         type_1 = 1/273,
+                         type_2 = 27/27)
+
+rbind(log_errors, lda_errors)
+
+```
+
+LDA does have a slightly better overall record than logistic regression, but fails to identify even one Taylor Swift song correctly. If our null hypothesis was a song is not created by Taylor Swift, then LDA does misclassify one more song than logistic regression as not taylor swift when it actually was (Type 2 error), but has 4 less "TRUE"'s when actually the song is not made by Taylor (Type 1 error)
+
+#QDA
+```{r}
+qda_reg <- qda(taylor~., data = train)
+qda_reg
+
+
+#predictions on the test set
+qda_pred <- data.frame(prob = predict(qda_reg, newdata = test)) %>%
+  mutate(prediction = prob.class) %>%
+  cbind(original = test$taylor) %>%
+  mutate(correct = prediction == original)
+
+qda_pred_all <- cbind(test_full, qda_pred)
+
+track_qda <- qda_pred_all %>%
+  filter(correct == TRUE,
+         artist_name == "Taylor Swift") 
+track_qda$track_name
+
+#results
+table(qda_pred$prediction, test$taylor)
+sum(qda_pred$correct) / nrow(qda_pred)
+qda_errors <- data.frame(method = "QDA",
+                         overall = sum(qda_pred$correct) / nrow(qda_pred),
+                         type_1 = 71/273,
+                         type_2 = 4/27)
+
+rbind(log_errors, lda_errors, qda_errors)
+```
+
+Overall, QDA does perform worse than than both logistic regression and LDA with an overall accuracy rate of .75. However, it beats both of them in actually identifying Taylor Swift songs, actually identifying 23 out of 27 songs, although this come with more incorrect ID's. 
+
+#Classification Tree
+```{r}
+tree_reg = tree(as.factor(taylor) ~ ., data = train)
+summary(tree_reg)
+
+plot(tree_reg)
+text(tree_reg, pretty = 0)
+
+#cross validation to prune tree
+set.seed(4)
+cv.tree_reg <- cv.tree(tree_reg, FUN = prune.misclass)
+cv.tree_reg
+#size that corresponds with the lowest cross-validation error rate is 15
+pruned_tree_reg <- prune.misclass(tree_reg, best = 15)
+plot(pruned_tree_reg)
+text(pruned_tree_reg, pretty = 0)
+
+tree_pred <- data.frame(prediction = predict(pruned_tree_reg, newdata = test, 
+                                       type = "class")) %>%
+  cbind(original = test$taylor) %>%
+  mutate(correct = prediction == original)
+
+tree_pred_all <- cbind(test_full, tree_pred)
+  
+track_tree <- tree_pred_all %>%
+  filter(correct == TRUE,
+         artist_name == "Taylor Swift") 
+track_tree$track_name
+  
+table(tree_pred$prediction, test$taylor)
+sum(tree_pred$correct) / nrow(tree_pred)
+tree_errors <- data.frame(method = "Classification Tree",
+                         overall = sum(tree_pred$correct) / nrow(tree_pred),
+                         type_1 = 13/273,
+                         type_2 = 11/27)
+rbind(log_errors, lda_errors, qda_errors, tree_errors)
+```
+
+Classification Tree actually has a pretty high accuracy rate, while also doing a decent job of identifying Taylor Swift songs when they actually are Taylor Swift songs. So far, I would probably choose the regression tree just in terms of its performance, not even taking into account its interpretability, which is pretty good.
+
+#Random Forest
+```{r}
+set.seed(11)
+rf_reg <- randomForest(as.factor(taylor)~. , data = train, mtry = 4, importance = TRUE)
+importance(rf_reg)
+varImpPlot(rf_reg)
+
+rf_pred <- data.frame(prediction = predict(rf_reg, newdata = test, 
+                                       type = "class")) %>%
+  cbind(original = test$taylor) %>%
+  mutate(correct = prediction == original)
+
+rf_pred_all <- cbind(test_full, rf_pred)
+  
+track_rf <- rf_pred_all %>%
+  filter(correct == TRUE,
+         artist_name == "Taylor Swift") 
+track_rf$track_name
+  
+table(rf_pred$prediction, test$taylor)
+sum(rf_pred$correct) / nrow(rf_pred)
+rf_errors <- data.frame(method = "Random Forest",
+                         overall = sum(rf_pred$correct) / nrow(rf_pred),
+                         type_1 = 1/273,
+                         type_2 = 7/27)
+rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors)
+
+```
+
+#Support Vector Machines
+```{r, cache = TRUE, support vector machines}
+svm_reg <- svm(as.factor(taylor)~., data = train, kernal = "radial", 
+               gamma = 1, cost = 1)
+summary(svm_reg)
+set.seed(1)
+tuning <- tune(svm, as.factor(taylor)~., data = train, 
+               kernal = "radial",
+               ranges = list(cost = c(.1, 1, 10, 100, 1000),
+                             gamma = c(.5, 1, 2, 3, 4)))
+summary(tuning)
+tuning$best.model
+#best parameters have cost of 10, gamma of 1
+
+svm_pred <- data.frame(prediction = predict(tuning$best.model, 
+                                            newdata = test)) %>%
+  cbind(original = test$taylor) %>%
+  mutate(correct = prediction == original)
+
+svm_pred_all <- cbind(test_full, svm_pred)
+  
+track_svm <- svm_pred_all %>%
+  filter(correct == TRUE,
+         artist_name == "Taylor Swift") 
+track_svm$track_name
+  
+table(svm_pred$prediction, test$taylor)
+sum(svm_pred$correct) / nrow(svm_pred)
+svm_errors <- data.frame(method = "Support Vector Machine",
+                         overall = sum(svm_pred$correct) / nrow(svm_pred),
+                         type_1 = 2/273,
+                         type_2 = 10/27)
+rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors, svm_errors)
+```
+
+SVM's did a pretty good job, enough to snag #2 on the list. High overall accuracy rate, but struggled a wee bit more than random forests in identifying Taylor Swift songs as Taylor Swift songs. 
+
+#Neural Network
+```{r, cache = TRUE, Neural Network}
+#need to normalize data
+normalize <- function(vector){
+   return ((vector - min(vector)) / (max(vector) - min(vector)))
+}
+
+train_norm <- train %>%
+  mutate(danceability = normalize(danceability),
+         energy = normalize(energy),
+         key = normalize(key))
+```
+
+
