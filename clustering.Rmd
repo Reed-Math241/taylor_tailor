@@ -1,0 +1,56 @@
+---
+title: "PCA and Clustering"
+author: "Cristina Gonzales"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readr)
+library(here)
+```
+
+New stuff: PCA and clustering (k-means and hierarchal)
+
+```{r}
+all <- read_csv(here("data/all.csv")) 
+
+#only keeping numeric var for pca
+all_pca <- all %>%
+  select(danceability, energy, loudness, speechiness, acousticness, instrumentalness,
+         liveness, valence, tempo, duration_ms)
+
+
+```
+
+```{r}
+#PCA
+pr.out = prcomp(all_pca, scale = TRUE)
+
+#means
+pr.out$center
+#standard dev
+pr.out$scale
+#principal component loading
+pr.out$rotation
+
+#biplot
+pr.out$rotation = - pr.out$rotation
+pr.out$x = - pr.out$x
+biplot(pr.out, scale = 0)
+
+#variance of principal components
+pr.var = pr.out$sdev^2
+pve = pr.var / sum(pr.var)
+
+#principal comp vs var plots
+plot(pve, xlab = "Principal Component", ylab = "Proportion of Variance Explained",
+     ylim = c(0, 1), type = "b")
+plot(cumsum(pve), xlab = "Princple Component", ylab = "Cumulative Proportion of Variance Explained",
+     ylim = c(0, 1), type = "b")
+```
+
