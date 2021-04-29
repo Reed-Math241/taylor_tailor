@@ -25,6 +25,7 @@ library(MASS)
 library(tree)
 library(randomForest)
 library(e1071)
+library(neuralnet)
 all <- read_csv("data/all.csv")
 ```
 
@@ -79,8 +80,8 @@ table(logistic_pred$prediction, test$taylor)
 sum(logistic_pred$correct) / nrow(logistic_pred)
 log_errors <- data.frame(method = "logistic",
                          overall = sum(logistic_pred$correct) / nrow(logistic_pred),
-                         type_1 = 5/(268+5),
-                         type_2 = 26/27)
+                         sensitivity = 1/27,
+                         specificity = 269/273)
 ```
 
 The logistic regression identified the following variables as significant at the .05 level: energy (positive), mode (positive), speechiness (negative), acousticness (positive), liveness (negative), valence (negative), tempo (negative), duration (positive), explicit (negative). Note that this is in comparison to the other songs we've included in our sample and not music as a whole. 
@@ -114,14 +115,14 @@ table(lda_pred$prediction, test$taylor)
 sum(lda_pred$correct) / nrow(lda_pred)
 lda_errors <- data.frame(method = "LDA",
                          overall = sum(lda_pred$correct) / nrow(lda_pred),
-                         type_1 = 1/273,
-                         type_2 = 27/27)
+                         sensitivity = 0/27,
+                         specificity = 272/273)
 
 rbind(log_errors, lda_errors)
 
 ```
 
-LDA does have a slightly better overall record than logistic regression, but fails to identify even one Taylor Swift song correctly. If our null hypothesis was a song is not created by Taylor Swift, then LDA does misclassify one more song than logistic regression as not taylor swift when it actually was (Type 2 error), but has 4 less "TRUE"'s when actually the song is not made by Taylor (Type 1 error)
+LDA does have a slightly better overall record than logistic regression, but fails to identify even one Taylor Swift song correctly. LDA does misclassify one more song than logistic regression as not taylor swift when it actually was (False Negative), but has 4 less "TRUE"'s when actually the song is not made by Taylor (False Positive)
 
 #QDA
 ```{r}
@@ -147,13 +148,13 @@ table(qda_pred$prediction, test$taylor)
 sum(qda_pred$correct) / nrow(qda_pred)
 qda_errors <- data.frame(method = "QDA",
                          overall = sum(qda_pred$correct) / nrow(qda_pred),
-                         type_1 = 71/273,
-                         type_2 = 4/27)
+                         sensitivity = 22/27,
+                         specificity = 199/273)
 
 rbind(log_errors, lda_errors, qda_errors)
 ```
 
-Overall, QDA does perform worse than than both logistic regression and LDA with an overall accuracy rate of .75. However, it beats both of them in actually identifying Taylor Swift songs, actually identifying 23 out of 27 songs, although this come with more incorrect ID's. 
+Overall, QDA does perform worse than than both logistic regression and LDA with an overall accuracy rate of .74. However, it beats both of them in actually identifying Taylor Swift songs, actually identifying 22 out of 27 songs, although this come with more incorrect ID's (False Positives). 
 
 #Classification Tree
 ```{r}
@@ -188,8 +189,8 @@ table(tree_pred$prediction, test$taylor)
 sum(tree_pred$correct) / nrow(tree_pred)
 tree_errors <- data.frame(method = "Classification Tree",
                          overall = sum(tree_pred$correct) / nrow(tree_pred),
-                         type_1 = 13/273,
-                         type_2 = 11/27)
+                         sensitivity = 14/27,
+                         specificity = 256/273)
 rbind(log_errors, lda_errors, qda_errors, tree_errors)
 ```
 
@@ -218,8 +219,8 @@ table(rf_pred$prediction, test$taylor)
 sum(rf_pred$correct) / nrow(rf_pred)
 rf_errors <- data.frame(method = "Random Forest",
                          overall = sum(rf_pred$correct) / nrow(rf_pred),
-                         type_1 = 1/273,
-                         type_2 = 7/27)
+                         sensitivity = 20/27,
+                         specificity = 272/273)
 rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors)
 
 ```
@@ -254,8 +255,8 @@ table(svm_pred$prediction, test$taylor)
 sum(svm_pred$correct) / nrow(svm_pred)
 svm_errors <- data.frame(method = "Support Vector Machine",
                          overall = sum(svm_pred$correct) / nrow(svm_pred),
-                         type_1 = 2/273,
-                         type_2 = 10/27)
+                         sensitivity = 17/27,
+                         specificity = 269/273)
 rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors, svm_errors)
 ```
 
@@ -271,7 +272,60 @@ normalize <- function(vector){
 train_norm <- train %>%
   mutate(danceability = normalize(danceability),
          energy = normalize(energy),
-         key = normalize(key))
+         loudness = normalize(loudness),
+         speechiness = normalize(speechiness),
+         tempo = normalize(tempo),
+         duration_ms = normalize(duration_ms))
+train_norm <- train_norm[,-c(4, 11, 13)]
+
+test_norm <- test %>%
+  mutate(danceability = normalize(danceability),
+         energy = normalize(energy),
+         loudness = normalize(loudness),
+         speechiness = normalize(speechiness),
+         tempo = normalize(tempo),
+         duration_ms = normalize(duration_ms))
+test_norm <- test_norm[,-c(4, 11, 13)]
+
+neural_reg <- neuralnet(taylor ~ ., 
+                        data = train_norm,
+                        hidden = 5,
+                        err.fct = "ce",
+                        linear.output = FALSE,
+                        lifesign = 'full',
+                        rep = 2,
+                        algorithm = "rprop+",
+                        stepmax = 1e7)
+#use first output because gives smaller error
+plot(neural_reg, rep = 1)
+
+#predictions?
+output <- predict(neural_reg, test_norm, rep = 1, all.units = FALSE)
+net_pred <- output$net.result
+net_pred <- ifelse(net_pred > 0.5, TRUE, FALSE)
+
+
+nn_pred <- data.frame(prediction = net_pred) %>%
+  cbind(original = test$taylor) %>%
+  mutate(correct = prediction == original)
+
+nn_pred_all <- cbind(test_full, nn_pred)
+  
+track_nn <- nn_pred_all %>%
+  filter(correct == TRUE,
+         artist_name == "Taylor Swift") 
+track_nn$track_name
+  
+table(nn_pred$prediction, test$taylor)
+sum(nn_pred$correct) / nrow(nn_pred)
+nn_errors <- data.frame(method = "Neural Network",
+                         overall = sum(nn_pred$correct) / nrow(nn_pred),
+                         sensitivity = 4/27,
+                         specificity = 252/273)
+total_results <- rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors, svm_errors, nn_errors)
+
+total_results
+write_csv(total_results, file = "horserace_results")
 ```
 
 
