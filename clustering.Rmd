@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readr)
 library(here)
+library(ggrepel)
+library(gganimate)
 ```
 
 New stuff: PCA and clustering (k-means and hierarchal)
@@ -67,4 +69,155 @@ km.out1 = kmeans(all_cluster, centers = 8, nstart = 50)
 plot(all_cluster, col = (km.out1$cluster + 1), main = "K-means Clustering Results With K=7",
      pch = 20, cex = 2)
 ```
+
+```{r}
+#clustering with albums, not individual songs
+album_pca <- all %>%
+  group_by(album_name) %>%
+  summarize(danceability = mean(danceability),
+         energy = mean(energy),
+         loudness = mean(loudness), 
+         speechiness = mean(speechiness), 
+         acousticness = mean(acousticness), 
+         instrumentalness = mean(instrumentalness),
+         liveness = mean(liveness), 
+         valence = mean(valence), 
+         tempo = mean(tempo), 
+         duration_ms = mean(duration_ms), 
+         time_signature = mean(time_signature)) %>%
+  select(-album_name)
+
+album_PCA_titles <- all %>%
+  group_by(album_name) %>%
+  summarize(danceability = mean(danceability),
+         energy = mean(energy),
+         loudness = mean(loudness), 
+         speechiness = mean(speechiness), 
+         acousticness = mean(acousticness), 
+         instrumentalness = mean(instrumentalness),
+         liveness = mean(liveness), 
+         valence = mean(valence), 
+         tempo = mean(tempo), 
+         duration_ms = mean(duration_ms), 
+         time_signature = mean(time_signature)) %>%
+  mutate(artist = case_when(
+    album_name %in% c("Taylor Swift", "Fearless", "Speak Now", "Red", "1989",
+                      "reputation", "Lover", "folklore", "evermore") ~ "Taylor Swift",
+    album_name %in% c("Yours Truly", "My Everything", "Dangerous Woman", "thank u, next",
+                      "Sweetener", "Positions") ~ "Ariana Grande",
+    album_name %in% c("Yellow Submarine Soundtrack", "Live At The Hollywood Bowl", 
+                      "The Beatles") ~ "The Beatles",
+    album_name == "Honeymoon" ~ "Beach Bunny",
+    album_name %in% c("True Romance", "SUCKER", "Number 1 Angel", "Pop 2",
+                      "Charli", "how i'm feeling now") ~ "Charli XCX",
+    album_name %in% c("Wide Open Spaces", "Fly", "Home", "Taking the Long Way",
+                      "Gaslighter") ~ "The Chicks",
+    album_name %in% c("Tug of War", "Kiss", "Emotion", "EMOTION SIDE B +", "Dedicated",
+                      "Dedicated Side B") ~ "Carly Rae Jepsen",
+    album_name %in% c("So Far Gone", "Thank Me Later", "Take Care", "Nothing Was The Same",
+                      "If You're Reading This It's Too Late", "What A Time To Be Alive", "Views",
+                      "More Life", "Scorpion", "Care Package", "Dark Lane Demo Tapes") ~ "Drake",
+    album_name %in% c("Dua Lipa", "Future Nostalgia") ~ "Dua Lipa",
+    album_name %in% c("Wasteland, Baby!", "Hozier") ~ "Hozier",
+    album_name %in% c("For Emma, Forever Ago", "Bon Iver", "22, A Million", "i,i") ~ "Bon Iver",
+    album_name %in% c("The College Dropout", "Late Registration", "Graduation", "808s & Heartbreak",
+                      "My Beautiful Dark Twisted Fantasy", "Watch The Throne", "Yeezus",
+                      "The Life Of Pablo", "ye", "KIDS SEE GHOSTS", "JESUS IS KING") ~ "Kanye",
+    album_name %in% c("Pure Heroine", "Melodrama") ~ "Lorde",
+    album_name %in% c("Wednesday Morning, 3 A.M.", "Parsley, Sage, Rosemary And Thyme", "Bookends",
+                      "The Graduate", "Bridge Over Troubled Water") ~ "Simon & Garfunkel"
+    
+  ))
+
+```
+
+```{r}
+#pca with albums
+pr.out_album = prcomp(album_pca, scale = TRUE)
+
+#means
+pr.out_album$center
+#standard dev
+pr.out_album$scale
+#principal component loading
+pr.out_album$rotation
+
+#biplot
+pr.out_album$rotation = - pr.out_album$rotation
+pr.out_album$x = - pr.out_album$x
+biplot(pr.out_album, scale = 0)
+
+#variance of principal components
+pr.var_album = pr.out_album$sdev^2
+pve_album = pr.var_album / sum(pr.var_album)
+
+#principal comp vs var plots
+plot(pve_album, xlab = "Principal Component", ylab = "Proportion of Variance Explained",
+     ylim = c(0, 1), type = "b")
+plot(cumsum(pve_album), xlab = "Princple Component", ylab = "Cumulative Proportion of Variance Explained",
+     ylim = c(0, 1), type = "b")
+
+#pca graphs
+pca_rotations <- data.frame(pr.out_album$rotation)
+pca_rotations$variables <- rownames(pca_rotations)
+PC1graph <- 
+  ggplot(data = pca_rotations, mapping = aes(x = variables, y = PC1, 
+                                          fill = variables)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Production: Simple vs. Embellished") +
+  theme(legend.position = "none")
+PC1graph
+
+PC2graph <- 
+  ggplot(data = pca_rotations, mapping = aes(x = variables, y = PC2, 
+                                          fill = variables)) +
+  geom_col() +
+  coord_flip() +
+  theme(legend.position = "none") +
+  labs(title = "Rhythm vs. Energy")
+PC2graph
+
+PC3graph <- 
+  ggplot(data = pca_rotations, mapping = aes(x = variables, y = PC3, 
+                                          fill = variables)) +
+  geom_col() +
+  coord_flip() +
+  theme(legend.position = "none")
+PC3graph
+
+pca_titles <- as.data.frame(pr.out_album$x)
+pca_titles$album_name <- album_PCA_titles$album_name
+pca_titles$artist <- album_PCA_titles$artist
+
+taylor_pca <- ggplot(pca_titles, aes(x = PC1, y = PC2)) +
+  geom_point(alpha = .3) +
+  geom_text_repel(data = subset(pca_titles, artist == "Taylor Swift"),
+            aes(label = album_name)) +
+  geom_point(data = subset(pca_titles, artist == "Taylor Swift"), 
+             mapping = aes(x = PC1, y = PC2),
+             alpha = .7, color = "purple2") +
+  ylab("Rhythm vs. Energy") +
+  xlab("Production: Simple vs Embellished")
+taylor_pca
+
+p_pca_album <- ggplot(pca_titles, aes(x = PC1, y = PC2)) +
+  geom_text(data = pca_titles, aes(label = album_name, y = PC2 + .2)) +
+  xlab("Production: Simple vs Embellished") +
+  ylab("Rhythm vs Energy") +
+  transition_states(artist, transition_length = 5)
+animate(p_pca_album, fps = 0.5) + 
+  ggtitle('Artist: {closest_state}')
+```
+
+```{r}
+##clustering with albums
+#k means with k = 7
+km.out_album = kmeans(album_pca, centers = 7, nstart = 50)
+plot(album_pca, col = (km.out_album$cluster + 1), main = "K-means Clustering Results With K=7",
+     pch = 20, cex = 2)
+
+```
+
+
 
