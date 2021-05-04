@@ -14,6 +14,7 @@ library(readr)
 library(here)
 library(ggrepel)
 library(gganimate)
+library(ggplot2)
 ```
 
 New stuff: PCA and clustering (k-means and hierarchal)
@@ -212,11 +213,49 @@ animate(p_pca_album, fps = 0.5) +
 
 ```{r}
 ##clustering with albums
-#k means with k = 7
-km.out_album = kmeans(album_pca, centers = 7, nstart = 50)
-plot(album_pca, col = (km.out_album$cluster + 1), main = "K-means Clustering Results With K=7",
-     pch = 20, cex = 2)
+#choosing k
+n_pca <- as_tibble(pr.out_album$x[, 1:3])
+n_clusters_kmeans1<-kmeans(n_pca, centers = 1, nstart = 20)
+n_clusters_kmeans2<-kmeans(n_pca, centers = 2, nstart = 20)
+n_clusters_kmeans3<-kmeans(n_pca, centers = 3, nstart = 20)
+n_clusters_kmeans4<-kmeans(n_pca, centers = 4, nstart = 20)
+n_clusters_kmeans5<-kmeans(n_pca, centers = 5, nstart = 20)
+n_clusters_kmeans6<-kmeans(n_pca, centers = 6, nstart = 20)
+kmeansvariation <- tibble("K" = 1:6,
+                              "SS" = c(n_clusters_kmeans1$tot.withinss,
+                                       n_clusters_kmeans2$tot.withinss,
+                                       n_clusters_kmeans3$tot.withinss,
+                                       n_clusters_kmeans4$tot.withinss,
+                                       n_clusters_kmeans5$tot.withinss,
+                                       n_clusters_kmeans6$tot.withinss))
 
+ggplot(data = kmeansvariation, mapping = aes(x = K, y = SS)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "K means scree plot")
+
+#complete linkage plot
+n_pca_dist <- dist(n_pca)
+distmatrix <- as.matrix(n_pca_dist)
+n_clusters_hier<-hclust(dist(n_pca))
+plot(n_clusters_hier, xlab = "", ylab = "", sub = "", 
+     main = "Complete Linkage")
+
+#cut = 4
+n_clusters_hier_cut <- cutree(n_clusters_hier, 4)
+
+n_pca_kmeans <- n_pca %>% mutate(cluster = n_clusters_kmeans4$cluster)
+n_pca_hier <- n_pca %>% mutate(cluster = n_clusters_hier_cut)
+
+ggplot(n_pca_kmeans, aes(x = PC1, y = PC2,
+                          color = as.factor(cluster))) + 
+  geom_point(alpha = .6) +
+  labs(title = "kmeans clustering")
+
+ggplot(n_pca_hier, aes(x = PC1, y = PC2, 
+                        color = as.factor(cluster))) +
+  geom_point(alpha = .6) +
+  labs(title = "hierarchical clustering")
 ```
 
 
