@@ -259,4 +259,13 @@ ggplot(n_pca_hier, aes(x = PC1, y = PC2,
 ```
 
 
+```{r}
+#saving data for dashboard
+write_csv(pca_rotations, file = "pca_rotations.csv")
+write_csv(pca_titles, file = "pca_titles.csv")
+#n_clusters_hier <- as.data.frame(n_clusters_hier)
+#write_csv(n_clusters_hier, file = "n_clusters_hier.csv")
+write_csv(n_pca_kmeans, file = "n_pca_kmeans.csv")
+write_csv(n_pca_hier, file = "n_pca_hier.csv")
+```
 
