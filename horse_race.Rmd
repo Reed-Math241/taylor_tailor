@@ -26,6 +26,8 @@ library(tree)
 library(randomForest)
 library(e1071)
 library(neuralnet)
+library(caret)
+library(gt)
 all <- read_csv("data/all.csv")
 ```
 
@@ -226,7 +228,7 @@ rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors)
 ```
 
 #Support Vector Machines
-```{r, cache = TRUE, support vector machines}
+```{r cache=TRUE}
 svm_reg <- svm(as.factor(taylor)~., data = train, kernal = "radial", 
                gamma = 1, cost = 1)
 summary(svm_reg)
@@ -301,7 +303,7 @@ plot(neural_reg, rep = 1)
 
 #predictions?
 output <- predict(neural_reg, test_norm, rep = 1, all.units = FALSE)
-net_pred <- output$net.result
+net_pred <- output[,2]
 net_pred <- ifelse(net_pred > 0.5, TRUE, FALSE)
 
 
@@ -324,8 +326,188 @@ nn_errors <- data.frame(method = "Neural Network",
                          specificity = 252/273)
 total_results <- rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors, svm_errors, nn_errors)
 
-total_results
-write_csv(total_results, file = "horserace_results")
+
+```
+
+```{r writing results, eval = FALSE}
+#nn results
+nn_pred_all <- cbind(test_full, nn_pred)
+write_csv(nn_pred_all, "nn_pred_all")
+save(neural_reg, file = "neural_reg.RData")
+#load("neural_reg.RData")
+
+
+
+#results for each test, load into table
+#logistic regression
+log_data <- data.frame(unclass(table(logistic_pred$prediction, test$taylor))) %>%
+  mutate(Predicted = rownames(log_data)) %>%
+  rename("FALSE" = "FALSE.",
+         "TRUE" = "TRUE.")
+log_data <- log_data[,c(3,1,2)]
+
+log_table <- log_data %>% 
+  gt() %>%
+  tab_header(title = md("**Logistic Regression Results**")) %>%
+  tab_spanner(label = "Reference", columns = 2:3)  %>%
+  tab_stubhead(label = "Predicted") %>%
+  data_color(columns = 2, 
+             colors = c("Tomato", "darkseagreen2")) %>%
+  data_color(columns = 3, 
+             colors = c("darkseagreen2","Tomato"))
+  
+write_csv(log_data, file = "log_data.csv")
+gtsave(log_table, "log_table.html")
+
+
+
+#lda
+lda_data <- data.frame(unclass(table(lda_pred$prediction, test$taylor))) 
+lda_data <- lda_data %>%
+  mutate(Predicted = rownames(lda_data)) %>%
+  rename("FALSE" = "FALSE.",
+         "TRUE" = "TRUE.")
+lda_data <- lda_data[,c(3,1,2)]
+
+lda_table <- lda_data %>% 
+  gt() %>%
+  tab_header(title = md("**Linear Discriminant Analysis Results**")) %>%
+  tab_spanner(label = "Reference", columns = 2:3)  %>%
+  tab_stubhead(label = "Predicted") %>%
+  data_color(columns = 2, 
+             colors = c("Tomato", "darkseagreen2")) %>%
+  data_color(columns = 3, 
+             colors = c("darkseagreen2","Tomato"))
+  
+write_csv(lda_data, file = "lda_data.csv")
+gtsave(lda_table, "lda_table.html")
+
+
+#qda
+qda_data <- data.frame(unclass(table(qda_pred$prediction, test$taylor))) 
+qda_data <- qda_data %>%
+  mutate(Predicted = rownames(qda_data)) %>%
+  rename("FALSE" = "FALSE.",
+         "TRUE" = "TRUE.")
+qda_data <- qda_data[,c(3,1,2)]
+
+qda_table <- qda_data %>% 
+  gt() %>%
+  tab_header(title = md("**Quadratic Discriminant Analysis Results**")) %>%
+  tab_spanner(label = "Reference", columns = 2:3)  %>%
+  tab_stubhead(label = "Predicted") %>%
+  data_color(columns = 2, 
+             colors = c("Tomato", "darkseagreen2")) %>%
+  data_color(columns = 3, 
+             colors = c("Tomato","darkseagreen2"))
+  
+write_csv(qda_data, file = "qda_data.csv")
+gtsave(qda_table, "qda_table.html")
+
+
+#classification tree
+tree_data <- data.frame(unclass(table(tree_pred$prediction, test$taylor))) 
+tree_data <- tree_data %>%
+  mutate(Predicted = rownames(tree_data)) %>%
+  rename("FALSE" = "FALSE.",
+         "TRUE" = "TRUE.")
+tree_data <- tree_data[,c(3,1,2)]
+
+tree_table <- tree_data %>% 
+  gt() %>%
+  tab_header(title = md("**Classification Tree Results**")) %>%
+  tab_spanner(label = "Reference", columns = 2:3)  %>%
+  tab_stubhead(label = "Predicted") %>%
+  data_color(columns = 2, 
+             colors = c("Tomato", "darkseagreen2")) %>%
+  data_color(columns = 3, 
+             colors = c("Tomato","darkseagreen2"))
+  
+write_csv(tree_data, file = "tree_data.csv")
+gtsave(tree_table, "tree_table.html")
+
+
+
+#random forest
+rf_data <- data.frame(unclass(table(rf_pred$prediction, test$taylor))) 
+rf_data <- rf_data %>%
+  mutate(Predicted = rownames(rf_data)) %>%
+  rename("FALSE" = "FALSE.",
+         "TRUE" = "TRUE.")
+rf_data <- rf_data[,c(3,1,2)]
+
+rf_table <- rf_data %>% 
+  gt() %>%
+  tab_header(title = md("**Random Forest Results**")) %>%
+  tab_spanner(label = "Reference", columns = 2:3)  %>%
+  tab_stubhead(label = "Predicted") %>%
+  data_color(columns = 2, 
+             colors = c("Tomato", "darkseagreen2")) %>%
+  data_color(columns = 3, 
+             colors = c("Tomato","darkseagreen2"))
+  
+write_csv(rf_data, file = "rf_data.csv")
+gtsave(rf_table, "rf_table.html")
+
+
+
+#support vector machine
+svm_data <- data.frame(unclass(table(svm_pred$prediction, test$taylor))) 
+svm_data <- svm_data %>%
+  mutate(Predicted = rownames(svm_data)) %>%
+  rename("FALSE" = "FALSE.",
+         "TRUE" = "TRUE.")
+svm_data <- svm_data[,c(3,1,2)]
+
+svm_table <- svm_data %>% 
+  gt() %>%
+  tab_header(title = md("**Support Vector Machine Results**")) %>%
+  tab_spanner(label = "Reference", columns = 2:3)  %>%
+  tab_stubhead(label = "Predicted") %>%
+  data_color(columns = 2, 
+             colors = c("Tomato", "darkseagreen2")) %>%
+  data_color(columns = 3, 
+             colors = c("Tomato","darkseagreen2"))
+  
+write_csv(svm_data, file = "svm_data.csv")
+gtsave(svm_table, "svm_table.html")
+
+
+
+#neural network
+nn_data <- data.frame(unclass(table(nn_pred$prediction, test$taylor))) 
+nn_data <- nn_data %>%
+  mutate(Predicted = rownames(nn_data)) %>%
+  rename("FALSE" = "FALSE.",
+         "TRUE" = "TRUE.")
+nn_data <- nn_data[,c(3,1,2)]
+
+nn_table <- nn_data %>% 
+  gt() %>%
+  tab_header(title = md("**Neural Network Results**")) %>%
+  tab_spanner(label = "Reference", columns = 2:3)  %>%
+  tab_stubhead(label = "Predicted") %>%
+  data_color(columns = 2, 
+             colors = c("Tomato", "darkseagreen2")) %>%
+  data_color(columns = 3, 
+             colors = c("darkseagreen2", "Tomato"))
+  
+write_csv(nn_data, file = "nn_data.csv")
+gtsave(nn_table, "nn_table.html")
+
+
+total_results %>%
+  rename("overall accuracy" = overall) %>%
+  gt() %>%
+  tab_header(title = md("**Horse Race Results**")) %>%
+  data_color(
+    columns = 2:4,
+    colors = scales::col_numeric(
+      palette =  as.character(paletteer::paletteer_d("ggsci::purple_material", n = 10)),
+      domain = c(.5, 1.5))
+  )
+
+write_csv(total_results, file = "horserace_results.csv")
 ```
 
 
