@@ -141,7 +141,7 @@ ui <- fluidPage(
                  p("- on the other hand, QDA has the lowest accuracy rate, but the highest sensitivity. This model predicted too many song's to be made by Taylor Swift but when it was Taylor Swift, this model predicted correctly."),
                  p("- I'm sticking with my personal favorite, Random Forest, bubt if you're in a scenario where you were given a song and you absolutely can't pass up a Taylor Swift song, I could see QDA being useful.") ,
                  br(),  
-                 p("See the confusion matrices below for the summarize predictions for each model. 'True Negatives' in the top left corner, 'False Negatives' in the top right, 'False Positives' in the bottom left, and 'True Positives' in the bottom right corner. As noted above, the Random Forest method had the least total errors in identifying songs, and QDA identified the most Taylor Swift songs, although this came with many false positives.0-,90-=   " ),
+                 p("See the confusion matrices below for the summarize predictions for each model. 'True Negatives' in the top left corner, 'False Negatives' in the top right, 'False Positives' in the bottom left, and 'True Positives' in the bottom right corner. As noted above, the Random Forest method had the least total errors in identifying songs, and QDA identified the most Taylor Swift songs, although this came with many false positives" ),
                  gt_output(outputId = "log_table"), br(),  br(),
                  gt_output(outputId = "lda_table"), br(), br(),
                  gt_output(outputId = "qda_table"), br(), br(),
