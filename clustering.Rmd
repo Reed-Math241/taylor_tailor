@@ -258,6 +258,14 @@ ggplot(n_pca_hier, aes(x = PC1, y = PC2,
   labs(title = "hierarchical clustering")
 ```
 
+```{r}
+n_pca_kmeans$album_name <- album_PCA_titles$album_name
+n_pca_kmeans$artist <- album_PCA_titles$artist
+
+n_pca_hier$album_name <- album_PCA_titles$album_name
+n_pca_hier$artist <- album_PCA_titles$artist
+```
+
 
 ```{r}
 #saving data for dashboard

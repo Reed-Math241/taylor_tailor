@@ -5,7 +5,7 @@ library(DT)
 library(tidyverse)
 library(readr)
 library(stringr)
-
+library(ggrepel)
 library(ggplot2)
 
 #horse race... to see code, see horse_race.rmd
@@ -119,14 +119,50 @@ total_results_table <- total_results %>%
       domain = c(.5, 1))
   )
 
+#clustering plots and tables
+pca_rotations <- read.csv("clustering_results/pca_rotations.csv")
+pc1graph <- ggplot(data = pca_rotations, mapping = aes(x = variables, y = PC1, 
+                                                       fill = variables)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Production: Simple vs. Embellished") +
+  theme(legend.position = "none")
+
+pc2graph <- ggplot(data = pca_rotations, mapping = aes(x = variables, y = PC2, 
+                                                       fill = variables)) +
+  geom_col() +
+  coord_flip() +
+  theme(legend.position = "none") +
+  labs(title = "Rhythm vs. Energy")
+
+n_pca_kmeans <- read_csv("clustering_results/n_pca_kmeans.csv")
+kmeans_graph <- ggplot(n_pca_kmeans, aes(x = PC1, y = PC2,
+                                         color = as.factor(cluster))) + 
+  geom_point(alpha = .6) +
+  labs(title = "Kmeans Clustering",
+       x = "Production: Simple vs. Embellished",
+       y = "Rhythm vs. Energy")
+
+n_pca_hier <- read_csv("clustering_results/n_pca_hier.csv")
+hier_graph <-ggplot(n_pca_hier, aes(x = PC1, y = PC2, 
+                                    color = as.factor(cluster))) +
+  geom_point(alpha = .6) +
+  labs(title = "Hierarchical Clustering",
+       x = "Production: Simple vs. Embellished",
+       y = "Rhythm vs. Energy")
+
 ui <- fluidPage(
   theme = shinytheme("united"),
   titlePanel("Taylor Tailor: A Spotify Project"),
   
     mainPanel(
       tabsetPanel(
+        tabPanel("Overview"),
         tabPanel("Clustering", tags$p("We use PCA Analysis to simplify the given Spotify attributes into two principle components, and then use 2 clustering techniques, K-means and Hierarchical, to cluster similar albums by the average attribute values of the songs in the album. Similar albums are clustered together, so if you enjoyed Taylor Swift's Reputation, located in ____ (K-means) and ____ (Hierarchical), then you might also enjoy _____, ____, ____, also located within the same clusters."),
-                ),
+                 plotOutput(outputId = "pc1graph"),
+                 plotOutput(outputId = "pc2graph"),
+                 plotOutput(outputId = "kmeans_graph"),
+                 plotOutput(outputId = "hier_graph")),
         tabPanel("Horse Race",
                  p("In this section, we investigate the predictive power of different classification techniques. We compare the accuracy rates, sensitivity (True Positive Rate: Classifying a Taylor Swift song as made by Taylor Swift), and specificity (True Negative Rate: Classifying a song not made by Taylor Swift as a non-Taylor Swift Song). Specifically, we compare logistic regression, linear discriminant analysis, quadratic discriminant analysis, the  classification tree, random forest, support vector machine, and neural network."),
                  br(),
@@ -149,7 +185,9 @@ ui <- fluidPage(
                  gt_output(outputId = "rf_table"), br(), br(),
                  gt_output(outputId = "svm_table"), br(), br(),
                  gt_output(outputId = "nn_table"),  br(),  br()
-                 )
+                 ),
+        tabPanel("Clustering Code"),
+        tabPanel("Horse Race Code")
         )
       
     )
@@ -165,6 +203,10 @@ server <- function(input, output, session){
   output$svm_table <- render_gt(svm_table)
   output$nn_table <- render_gt(nn_table)
   output$total_results_table <- render_gt(total_results_table)
+  output$pc1graph <- renderPlot(pc1graph)
+  output$pc2graph <- renderPlot(pc2graph)
+  output$kmeans_graph <- renderPlot(kmeans_graph)
+  output$hier_graph <- renderPlot(hier_graph)
 }
 
 # Creates app
