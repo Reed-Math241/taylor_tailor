@@ -151,16 +151,32 @@ hier_graph <-ggplot(n_pca_hier, aes(x = PC1, y = PC2,
        x = "Production: Simple vs. Embellished",
        y = "Rhythm vs. Energy")
 
+pca_titles <- read_csv("clustering_results/pca_titles.csv")
+
 ui <- fluidPage(
   theme = shinytheme("united"),
   titlePanel("Taylor Tailor: A Spotify Project"),
-  
+  sidebarLayout(
+    sidebarPanel(
+      checkboxGroupInput("artist", label = h3("Artist"), 
+                         choices = list("Taylor Swift" = "Taylor Swift", "Bon Iver" = "Bon Iver", "Kanye" = "Kanye",
+                                        "Simon & Garfunkel" = "Simon & Garfunkel", "Drake" = "Drake", "Charli XCX" = "Charli XCX", 
+                                        "Ariana Grande" = "Ariana Grande", "Carly Rae Jepsen" = "Carly Rae Jepsen",
+                                        "Dua Lipa" = "Dua Lipa", "The Chicks" = "The Chicks", "Beach Bunny" = "Beach Bunny", 
+                                        "Hozier" = "Hozier", "The Beatles" = "The Beatles", "Lorde" = "Lorde"),
+                         selected = 1),
+      
+      
+      hr(),
+      fluidRow(column(3, verbatimTextOutput("value")))
+    ),
     mainPanel(
       tabsetPanel(
         tabPanel("Overview"),
         tabPanel("Clustering", tags$p("We use PCA Analysis to simplify the given Spotify attributes into two principle components, and then use 2 clustering techniques, K-means and Hierarchical, to cluster similar albums by the average attribute values of the songs in the album. Similar albums are clustered together, so if you enjoyed Taylor Swift's Reputation, located in ____ (K-means) and ____ (Hierarchical), then you might also enjoy _____, ____, ____, also located within the same clusters."),
                  plotOutput(outputId = "pc1graph"),
                  plotOutput(outputId = "pc2graph"),
+                 plotOutput(outputId = "pca_titles"),
                  plotOutput(outputId = "kmeans_graph"),
                  plotOutput(outputId = "hier_graph")),
         tabPanel("Horse Race",
@@ -191,6 +207,7 @@ ui <- fluidPage(
         )
       
     )
+   )
   )
 
 
@@ -207,6 +224,15 @@ server <- function(input, output, session){
   output$pc2graph <- renderPlot(pc2graph)
   output$kmeans_graph <- renderPlot(kmeans_graph)
   output$hier_graph <- renderPlot(hier_graph)
+  dat_titles <- reactive({
+    pca_titles %>%
+      filter(artist %in% input$artist)
+    })
+  output$pca_titles <- renderPlot({
+    ggplot(data = dat_titles(), mapping = aes(x = PC1, y = PC2, color = artist)) +
+      geom_point() +
+      geom_text_repel(aes(label = album_name))
+  })
 }
 
 # Creates app
