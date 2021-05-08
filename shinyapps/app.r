@@ -136,20 +136,66 @@ pc2graph <- ggplot(data = pca_rotations, mapping = aes(x = variables, y = PC2,
   labs(title = "Rhythm vs. Energy")
 
 n_pca_kmeans <- read_csv("clustering_results/n_pca_kmeans.csv")
+df <- n_pca_kmeans %>% filter(artist == "Taylor Swift")
 kmeans_graph <- ggplot(n_pca_kmeans, aes(x = PC1, y = PC2,
                                          color = as.factor(cluster))) + 
-  geom_point(alpha = .6) +
+  geom_text_repel(df, mapping = aes(label = album_name, 
+                  color = as.factor(cluster))) +
+  geom_point(alpha = .4) +
   labs(title = "Kmeans Clustering",
        x = "Production: Simple vs. Embellished",
-       y = "Rhythm vs. Energy")
+       y = "Rhythm vs. Energy",
+       color = "Cluster") +
+  theme(legend.position = "bottom")
 
-n_pca_hier <- read_csv("clustering_results/n_pca_hier.csv")
-hier_graph <-ggplot(n_pca_hier, aes(x = PC1, y = PC2, 
-                                    color = as.factor(cluster))) +
-  geom_point(alpha = .6) +
-  labs(title = "Hierarchical Clustering",
-       x = "Production: Simple vs. Embellished",
-       y = "Rhythm vs. Energy")
+kmeans_df <- n_pca_kmeans %>%
+  mutate(cluster = case_when(
+    cluster == 1 ~ "upbeat and complex production",
+    cluster == 2 ~ "slightly embellished, pop-adjacent",
+    cluster == 3 ~ "lyrical and moody",
+    cluster == 4 ~ "stripped down and calm"
+  )) %>%
+  select(4:6)
+
+na <- data.frame(artist = NA, album_name = NA)
+kmeans_df <- kmeans_df %>%
+  arrange(artist)
+c1 <- kmeans_df %>%
+  filter(cluster == "upbeat and complex production")
+c1 <- c1[,-1]
+while (length(c1$artist) < length(c3$artist)) {
+  c1 <- rbind(c1, na)
+}
+c2 <- kmeans_df %>%
+  filter(cluster == "slightly embellished, pop-adjacent")
+c2 <- c2[,-1]
+while (length(c2$artist) < length(c3$artist)) {
+  c2 <- rbind(c2, na)
+}
+c3 <- kmeans_df %>%
+  filter(cluster == "lyrical and moody")
+c3 <- c3[,-1]
+
+c4 <- kmeans_df %>%
+  filter(cluster == "stripped down and calm")
+c4 <- c4[,-1]
+while (length(c4$artist) < length(c3$artist)) {
+  c4 <- rbind(c4, na)
+}
+
+kmeans_table_start <- cbind(c1, c2, c3, c4) 
+
+colnames(kmeans_table_start) <- c("Album Name", "   Artist",
+                                  "Album Name ", "  Artist",
+                                  "Album Name  ", " Artist",
+                                  "Album Name   ", "Artist")
+
+kmeans_table_start %>%
+  gt() %>%
+  tab_spanner(label = "Cluster 1", columns = c(1,2)) %>%
+  tab_spanner(label = "Cluster 2", columns = c(3,4)) %>%
+  tab_spanner(label = "Cluster 3", columns = c(5,6)) %>%
+  tab_spanner(label = "Cluster 4", columns = c(7,8))
 
 pca_titles <- read_csv("clustering_results/pca_titles.csv")
 
@@ -158,7 +204,7 @@ ui <- fluidPage(
   titlePanel("Taylor Tailor: A Spotify Project"),
   sidebarLayout(
     sidebarPanel(
-      checkboxGroupInput("artist", label = h3("Artist"), 
+      checkboxGroupInput("artist", label = h3("Artist For PCA Map"), 
                          choices = list("Taylor Swift" = "Taylor Swift", "Bon Iver" = "Bon Iver", "Kanye" = "Kanye",
                                         "Simon & Garfunkel" = "Simon & Garfunkel", "Drake" = "Drake", "Charli XCX" = "Charli XCX", 
                                         "Ariana Grande" = "Ariana Grande", "Carly Rae Jepsen" = "Carly Rae Jepsen",
@@ -177,8 +223,7 @@ ui <- fluidPage(
                  plotOutput(outputId = "pc1graph"),
                  plotOutput(outputId = "pc2graph"),
                  plotOutput(outputId = "pca_titles"),
-                 plotOutput(outputId = "kmeans_graph"),
-                 plotOutput(outputId = "hier_graph")),
+                 plotOutput(outputId = "kmeans_graph")),
         tabPanel("Horse Race",
                  p("In this section, we investigate the predictive power of different classification techniques. We compare the accuracy rates, sensitivity (True Positive Rate: Classifying a Taylor Swift song as made by Taylor Swift), and specificity (True Negative Rate: Classifying a song not made by Taylor Swift as a non-Taylor Swift Song). Specifically, we compare logistic regression, linear discriminant analysis, quadratic discriminant analysis, the  classification tree, random forest, support vector machine, and neural network."),
                  br(),
@@ -223,15 +268,15 @@ server <- function(input, output, session){
   output$pc1graph <- renderPlot(pc1graph)
   output$pc2graph <- renderPlot(pc2graph)
   output$kmeans_graph <- renderPlot(kmeans_graph)
-  output$hier_graph <- renderPlot(hier_graph)
   dat_titles <- reactive({
     pca_titles %>%
       filter(artist %in% input$artist)
     })
   output$pca_titles <- renderPlot({
     ggplot(data = dat_titles(), mapping = aes(x = PC1, y = PC2, color = artist)) +
-      geom_point() +
-      geom_text_repel(aes(label = album_name))
+      geom_text_repel(aes(label = album_name)) + 
+      labs(title = "Principle Component Map by Artist") +
+      theme(legend.position = "bottom")
   })
 }
 
