@@ -157,7 +157,7 @@ kmeans_df <- n_pca_kmeans %>%
   )) %>%
   select(4:6)
 
-na <- data.frame(artist = NA, album_name = NA)
+na <- data.frame(artist = "", album_name = "")
 kmeans_df <- kmeans_df %>%
   arrange(artist)
 c1 <- kmeans_df %>%
@@ -190,12 +190,26 @@ colnames(kmeans_table_start) <- c("Album Name", "   Artist",
                                   "Album Name  ", " Artist",
                                   "Album Name   ", "Artist")
 
-kmeans_table_start %>%
+kmeans_table <- kmeans_table_start %>%
   gt() %>%
   tab_spanner(label = "Cluster 1", columns = c(1,2)) %>%
   tab_spanner(label = "Cluster 2", columns = c(3,4)) %>%
   tab_spanner(label = "Cluster 3", columns = c(5,6)) %>%
-  tab_spanner(label = "Cluster 4", columns = c(7,8))
+  tab_spanner(label = "Cluster 4", columns = c(7,8)) %>%
+  tab_footnote(footnote = "Upbeat and complex production",
+               location = cells_column_spanners(spanners = "Cluster 1")) %>%
+  tab_footnote(footnote = "Slightly embellished, pop-adjacent",
+               location = cells_column_spanners(spanners = "Cluster 2")) %>%
+  tab_footnote(footnote = "Lyrical and moody",
+               location = cells_column_spanners(spanners = "Cluster 3")) %>%
+  tab_footnote(footnote = "Stripped down and calm",
+               location = cells_column_spanners(spanners = "Cluster 4")) %>%
+  tab_header(title = "Kmeans Clusters", subtitle = NULL)  %>%
+  data_color(columns = 1:2, colors = "#A1BEE6", apply_to = "fill") %>%
+  data_color(columns = 3:4, colors = "#FCBF6B", apply_to = "fill") %>%
+  data_color(columns = 5:6, colors = "#C0ADDB", apply_to = "fill") %>%
+  data_color(columns = 7:8, colors = "#D6E8BD", apply_to = "fill")
+
 
 pca_titles <- read_csv("clustering_results/pca_titles.csv")
 
@@ -218,12 +232,21 @@ ui <- fluidPage(
     ),
     mainPanel(
       tabsetPanel(
-        tabPanel("Overview"),
-        tabPanel("Clustering", tags$p("We use PCA Analysis to simplify the given Spotify attributes into two principle components, and then use 2 clustering techniques, K-means and Hierarchical, to cluster similar albums by the average attribute values of the songs in the album. Similar albums are clustered together, so if you enjoyed Taylor Swift's Reputation, located in ____ (K-means) and ____ (Hierarchical), then you might also enjoy _____, ____, ____, also located within the same clusters."),
+        tabPanel("Overview",
+                 tags$p()),
+        tabPanel("Clustering", 
+                 tags$p("We use Principle Component Analysis to simplify the given Spotify attributes into two principle components, and then use K-means clustering to group similar albums by the average attribute values of the songs in the album. Hierarchical clustering was also looked at, but all Taylor Swift albums were grouped into one cluster out of four, so it was not as helpful."),
+                 br(),
+                 tags$p("The important attributes for PC1 are instrumentalness and acousticness on the negative side, and loudness and energy on the positive side. We designate this principle component as a measure of the production of the album, with negative values corresponding to more simple production and positive values corresponding to more complex and loud production."),
                  plotOutput(outputId = "pc1graph"),
+                 tags$p("PC2 splits the attributes into duration and danceability on the negative side and valence and liveness on the positive side. We define this component so that a negative value corresponds to rhythm while a positive value corresponds to energy. A third principle component was plotted, but the split of attributes was similar to PC2, so it was not included in our analysis."),
                  plotOutput(outputId = "pc2graph"),
+                 tags$p("We then plot the albums on a princple component map. The checkboxes in the sidebar can be used to compare the albums of multiple artists."),
                  plotOutput(outputId = "pca_titles"),
-                 plotOutput(outputId = "kmeans_graph")),
+                 tags$p("In order to recommend a Taylor Swift album, we cluster the albums using the K-means technique. There was no distinct elbow on the scree plot, so we choose K = 4. Cluster 4 does not contain any Taylor Swift albums, but my personal recommendation would be the folklore album if you like the albums in this cluster."),
+                 plotOutput(outputId = "kmeans_graph"),
+                 tags$p("The descriptions of each cluster can be found in the footnotes."),
+                 gt_output(outputId = "kmeans_table")),
         tabPanel("Horse Race",
                  p("In this section, we investigate the predictive power of different classification techniques. We compare the accuracy rates, sensitivity (True Positive Rate: Classifying a Taylor Swift song as made by Taylor Swift), and specificity (True Negative Rate: Classifying a song not made by Taylor Swift as a non-Taylor Swift Song). Specifically, we compare logistic regression, linear discriminant analysis, quadratic discriminant analysis, the  classification tree, random forest, support vector machine, and neural network."),
                  br(),
@@ -275,9 +298,12 @@ server <- function(input, output, session){
   output$pca_titles <- renderPlot({
     ggplot(data = dat_titles(), mapping = aes(x = PC1, y = PC2, color = artist)) +
       geom_text_repel(aes(label = album_name)) + 
-      labs(title = "Principle Component Map by Artist") +
+      labs(title = "Principle Component Map by Artist",
+           x = "Production: Simple va. Embellished",
+           y = "Rhythm vs. Energy") +
       theme(legend.position = "bottom")
   })
+  output$kmeans_table <- render_gt(kmeans_table)
 }
 
 # Creates app
