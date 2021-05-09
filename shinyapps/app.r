@@ -216,37 +216,48 @@ pca_titles <- read_csv("clustering_results/pca_titles.csv")
 ui <- fluidPage(
   theme = shinytheme("united"),
   titlePanel("Taylor Tailor: A Spotify Project"),
-  sidebarLayout(
-    sidebarPanel(
-      checkboxGroupInput("artist", label = h3("Artist For PCA Map"), 
-                         choices = list("Taylor Swift" = "Taylor Swift", "Bon Iver" = "Bon Iver", "Kanye" = "Kanye",
-                                        "Simon & Garfunkel" = "Simon & Garfunkel", "Drake" = "Drake", "Charli XCX" = "Charli XCX", 
-                                        "Ariana Grande" = "Ariana Grande", "Carly Rae Jepsen" = "Carly Rae Jepsen",
-                                        "Dua Lipa" = "Dua Lipa", "The Chicks" = "The Chicks", "Beach Bunny" = "Beach Bunny", 
-                                        "Hozier" = "Hozier", "The Beatles" = "The Beatles", "Lorde" = "Lorde"),
-                         selected = 1),
-      
-      
-      hr(),
-      fluidRow(column(3, verbatimTextOutput("value")))
-    ),
-    mainPanel(
+    mainPanel(width = 10,
       tabsetPanel(
         tabPanel("Overview",
-                 tags$p()),
-        tabPanel("Clustering", 
-                 tags$p("We use Principle Component Analysis to simplify the given Spotify attributes into two principle components, and then use K-means clustering to group similar albums by the average attribute values of the songs in the album. Hierarchical clustering was also looked at, but all Taylor Swift albums were grouped into one cluster out of four, so it was not as helpful."),
+                 tags$p("Three-time Album of the Year winner Taylor Swift released her debut album in 2006. With a discography spanning 15 years and multiple genres, 
+                        it can be hard to know where to begin when exploring her music. On the other side of the spectrum, Taylor Swift fans have a reputation of listening to only her music.
+                         The Taylor Tailor project seeks to solve both of these problems."),
                  br(),
-                 tags$p("The important attributes for PC1 are instrumentalness and acousticness on the negative side, and loudness and energy on the positive side. We designate this principle component as a measure of the production of the album, with negative values corresponding to more simple production and positive values corresponding to more complex and loud production."),
-                 plotOutput(outputId = "pc1graph"),
-                 tags$p("PC2 splits the attributes into duration and danceability on the negative side and valence and liveness on the positive side. We define this component so that a negative value corresponds to rhythm while a positive value corresponds to energy. A third principle component was plotted, but the split of attributes was similar to PC2, so it was not included in our analysis."),
-                 plotOutput(outputId = "pc2graph"),
-                 tags$p("We then plot the albums on a princple component map. The checkboxes in the sidebar can be used to compare the albums of multiple artists."),
-                 plotOutput(outputId = "pca_titles"),
-                 tags$p("In order to recommend a Taylor Swift album, we cluster the albums using the K-means technique. There was no distinct elbow on the scree plot, so we choose K = 4. Cluster 4 does not contain any Taylor Swift albums, but my personal recommendation would be the folklore album if you like the albums in this cluster."),
-                 plotOutput(outputId = "kmeans_graph"),
-                 tags$p("The descriptions of each cluster can be found in the footnotes."),
-                 gt_output(outputId = "kmeans_table")),
+                 tags$p("Using Spotify data obtained from the API wrapper, ", tags$a(href = "https://www.rcharlie.com/spotifyr/", tags$em("spotifyr")), 
+                        ", we grouped similar albums together to determine album recommendations. We pulled data for 14 artists in multiple genres including pop, rap, and folk. 
+                        Some groupings are predictable, such as 1989 by Taylor Swift and Dua Lipa’s Future Nostalgia in Cluster 1, but others are more surprising, like Kanye’s My Beautiful Dark Twisted Fantasy 
+                        in the same group as Taylor Swift’s country albums. See the Clustering tab to see more results."),
+                 br(),
+                 tags$p("To further explore the similarities between the music, we compare methods to predict whether a song was made by Taylor Swift or not. Most models had an accuracy rate of 90% or above, 
+                        so songs that are misclassified as Taylor Swift songs are highly likely to sound like a Taylor Swift song. See the Horse Race tab to view results.")),
+        tabPanel("Clustering", 
+                 sidebarLayout(
+                   sidebarPanel(
+                     checkboxGroupInput("artist", label = h3("Artists For PCA Map"), 
+                                        choices = list("Taylor Swift" = "Taylor Swift", "Bon Iver" = "Bon Iver", "Kanye" = "Kanye",
+                                                       "Simon & Garfunkel" = "Simon & Garfunkel", "Drake" = "Drake", "Charli XCX" = "Charli XCX", 
+                                                       "Ariana Grande" = "Ariana Grande", "Carly Rae Jepsen" = "Carly Rae Jepsen",
+                                                       "Dua Lipa" = "Dua Lipa", "The Chicks" = "The Chicks", "Beach Bunny" = "Beach Bunny", 
+                                                       "Hozier" = "Hozier", "The Beatles" = "The Beatles", "Lorde" = "Lorde"),
+                                        selected = 1),
+                     
+                     
+                     hr(),
+                     fluidRow(column(3, verbatimTextOutput("value")))
+                   ),
+                   mainPanel(tags$p("We use Principal Component Analysis to simplify the given Spotify attributes into two principal components, and then use K-means clustering to group similar albums by the average attribute values of the songs in the album. Hierarchical clustering was also looked at, but all Taylor Swift albums were grouped into one cluster out of four, so it was not as helpful."),
+                           br(),
+                           tags$p("The important attributes for PC1 are instrumentalness and acousticness on the negative side, and loudness and energy on the positive side. We designate this principal component to be a measure of the production of the album, with negative values corresponding to more simple production and positive values corresponding to more complex and loud production."),
+                           plotOutput(outputId = "pc1graph"),
+                           tags$p("PC2 splits the attributes into duration and danceability on the negative side and valence and liveness on the positive side. We define this component so that a negative value corresponds to rhythm while a positive value corresponds to energy. A third principle component was plotted, but the split of attributes was similar to PC2, so it was not included in our analysis."),
+                           plotOutput(outputId = "pc2graph"),
+                           tags$p("We then plot the albums on a princple component map. The checkboxes in the sidebar can be used to compare the albums of multiple artists."),
+                           plotOutput(outputId = "pca_titles"),
+                           tags$p("In order to recommend a Taylor Swift album, we cluster the albums using the K-means technique. As the name suggests, this technique groups the observations into k clusters, with each observation belonging to the nearest cluster center.
+                                  There was no distinct elbow on the scree plot, so we choose K = 4. There is a lot of overlap between Cluster 2 and Cluster 3, so the third principal component must be important in separating these clusters. Cluster 4 does not contain any Taylor Swift albums, but my personal recommendation would be the folklore album if you like the albums in this cluster."),
+                           plotOutput(outputId = "kmeans_graph"),
+                           tags$p("The descriptions of each cluster can be found in the footnotes."),
+                           gt_output(outputId = "kmeans_table")))),
         tabPanel("Horse Race",
                  p("In this section, we investigate the predictive power of different classification techniques. We compare the accuracy rates, sensitivity (True Positive Rate: Classifying a Taylor Swift song as made by Taylor Swift), and specificity (True Negative Rate: Classifying a song not made by Taylor Swift as a non-Taylor Swift Song). Specifically, we compare logistic regression, linear discriminant analysis, quadratic discriminant analysis, the  classification tree, random forest, support vector machine, and neural network."),
                  br(),
@@ -255,12 +266,13 @@ ui <- fluidPage(
                  
                  #change <br> to just be new paragraphs
                  p("Some conclusions:"),
-                 p("- all models, with the exception of QDA, had an accuracy rate of approximately 90% or above, with differences in specificity and sensitivity."),
-                 p("- my personal choice is the random forest, which had the highest accuracy of 97.33% in identifying whether a song was made by Taylor Swift or not."),
-                 p("- some models had a decent overall accuracy rate, such as logistic regression, LDA, and the Neural Network, roughly 90%, but identified very little Taylor Swift songs (low sensitivity). Essentially these models achieved their high accuracy by rejecting Taylor Swift for each song. Since there were many non-Taylor Swift songs, model's rates didn't suffer too badly."),
-                 p("- on the other hand, QDA has the lowest accuracy rate, but the highest sensitivity. This model predicted too many song's to be made by Taylor Swift but when it was Taylor Swift, this model predicted correctly."),
-                 p("- I'm sticking with my personal favorite, Random Forest, bubt if you're in a scenario where you were given a song and you absolutely can't pass up a Taylor Swift song, I could see QDA being useful.") ,
-                 br(),  
+                 tags$li("All models, with the exception of QDA, had an accuracy rate of approximately 90% or above, with differences in specificity and sensitivity."),
+                 tags$li("My personal choice is the random forest, which had the highest accuracy of 97.33% in identifying whether a song was made by Taylor Swift or not."),
+                 tags$li("Some models had a decent overall accuracy rate, such as logistic regression, LDA, and the Neural Network, roughly 90%, but identified very little Taylor Swift songs (low sensitivity). Essentially these models achieved their high accuracy by rejecting Taylor Swift for each song. Since there were many non-Taylor Swift songs, model's rates didn't suffer too badly."),
+                 tags$li("On the other hand, QDA has the lowest accuracy rate, but the highest sensitivity. This model predicted too many song's to be made by Taylor Swift but when it was Taylor Swift, this model predicted correctly."),
+                 tags$li("I'm sticking with my personal favorite, Random Forest, but if you're in a scenario where you were given a song and you absolutely can't pass up a Taylor Swift song, I could see QDA being useful."),
+                 tags$li("If you are a fan of Taylor Swift, you will probably enjoy songs that were misclassified as Taylor Swift songs, such as ___ and ___."),
+                 br(),
                  p("See the confusion matrices below for the summarize predictions for each model. 'True Negatives' in the top left corner, 'False Negatives' in the top right, 'False Positives' in the bottom left, and 'True Positives' in the bottom right corner. As noted above, the Random Forest method had the least total errors in identifying songs, and QDA identified the most Taylor Swift songs, although this came with many false positives" ),
                  gt_output(outputId = "log_table"), br(),  br(),
                  gt_output(outputId = "lda_table"), br(), br(),
@@ -269,14 +281,12 @@ ui <- fluidPage(
                  gt_output(outputId = "rf_table"), br(), br(),
                  gt_output(outputId = "svm_table"), br(), br(),
                  gt_output(outputId = "nn_table"),  br(),  br()
-                 ),
-        tabPanel("Clustering Code"),
-        tabPanel("Horse Race Code")
+                 )
         )
       
     )
    )
-  )
+  
 
 
 server <- function(input, output, session){
