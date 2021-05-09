@@ -119,6 +119,26 @@ total_results_table <- total_results %>%
       domain = c(.5, 1))
   )
 
+
+false_positives_table <- false_positives_df %>%
+  gt() %>%
+  tab_spanner(label = "Logistic Regression", columns = c(1,2)) %>%
+  tab_spanner(label = "LDA", columns = c(3,4)) %>%
+  tab_spanner(label = "QDA", columns = c(5,6)) %>%
+  tab_spanner(label = "Classification Tree", columns = c(7,8)) %>%
+  tab_spanner(label = "Random Forest", columns = c(9,10)) %>%
+  tab_spanner(label = "Support Vector Machine", columns = c(11,12)) %>%
+  tab_spanner(label = "Neural Network", columns = c(13,14)) %>%
+  tab_header(title = "Songs misclassified as Taylor Swift Songs", subtitle = NULL)  %>%
+  data_color(columns = 1:2, colors = "#FAC9DC", apply_to = "fill") %>%
+  data_color(columns = 3:4, colors = "#FA7575", apply_to = "fill") %>%
+  data_color(columns = 5:6, colors = "#FF985E", apply_to = "fill") %>%
+  data_color(columns = 7:8, colors = "#F0D878", apply_to = "fill") %>%
+  data_color(columns = 9:10, colors = "#CAE8A2", apply_to = "fill") %>%
+  data_color(columns = 11:12, colors = "#B3C7EB", apply_to = "fill") %>%
+  data_color(columns = 13:14, colors = "#BFA7DB", apply_to = "fill")
+
+
 #clustering plots and tables
 pca_rotations <- read.csv("clustering_results/pca_rotations.csv")
 pc1graph <- ggplot(data = pca_rotations, mapping = aes(x = variables, y = PC1, 
@@ -155,9 +175,13 @@ kmeans_df <- n_pca_kmeans %>%
     cluster == 3 ~ "lyrical and moody",
     cluster == 4 ~ "stripped down and calm"
   )) %>%
-  select(4:6)
+  dplyr::select(4:6)
 
 na <- data.frame(artist = "", album_name = "")
+c3 <- kmeans_df %>%
+  filter(cluster == "lyrical and moody")
+c3 <- c3[,-1]
+
 kmeans_df <- kmeans_df %>%
   arrange(artist)
 c1 <- kmeans_df %>%
@@ -172,9 +196,7 @@ c2 <- c2[,-1]
 while (length(c2$artist) < length(c3$artist)) {
   c2 <- rbind(c2, na)
 }
-c3 <- kmeans_df %>%
-  filter(cluster == "lyrical and moody")
-c3 <- c3[,-1]
+
 
 c4 <- kmeans_df %>%
   filter(cluster == "stripped down and calm")
@@ -272,8 +294,9 @@ ui <- fluidPage(
                  tags$li("Some models had a decent overall accuracy rate, such as logistic regression, LDA, and the Neural Network, roughly 90%, but identified very little Taylor Swift songs (low sensitivity). Essentially these models achieved their high accuracy by rejecting Taylor Swift for each song. Since there were many non-Taylor Swift songs, model's rates didn't suffer too badly."),
                  tags$li("On the other hand, QDA has the lowest accuracy rate, but the highest sensitivity. This model predicted too many song's to be made by Taylor Swift but when it was Taylor Swift, this model predicted correctly."),
                  tags$li("I'm sticking with my personal favorite, Random Forest, but if you're in a scenario where you were given a song and you absolutely can't pass up a Taylor Swift song, I could see QDA being useful."),
-                 tags$li("If you are a fan of Taylor Swift, you will probably enjoy songs that were misclassified as Taylor Swift songs, such as ___ and ___."),
+                 tags$li("If you are a fan of Taylor Swift, you will probably enjoy songs that were misclassified as Taylor Swift songs, such as Hozier's 'From Eden' and The Chick's 'Everybody Knows'."),
                  br(),
+                 gt_output(outputId = "false_positives_table"), br(),  br(),
                  p("See the confusion matrices below for the summarize predictions for each model. 'True Negatives' in the top left corner, 'False Negatives' in the top right, 'False Positives' in the bottom left, and 'True Positives' in the bottom right corner. As noted above, the Random Forest method had the least total errors in identifying songs, and QDA identified the most Taylor Swift songs, although this came with many false positives" ),
                  gt_output(outputId = "log_table"), br(),  br(),
                  gt_output(outputId = "lda_table"), br(), br(),
@@ -299,6 +322,7 @@ server <- function(input, output, session){
   output$svm_table <- render_gt(svm_table)
   output$nn_table <- render_gt(nn_table)
   output$total_results_table <- render_gt(total_results_table)
+  output$false_positives_table <- render_gt(false_positives_table)
   output$pc1graph <- renderPlot(pc1graph)
   output$pc2graph <- renderPlot(pc2graph)
   output$kmeans_graph <- renderPlot(kmeans_graph)

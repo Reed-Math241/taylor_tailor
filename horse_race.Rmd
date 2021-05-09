@@ -327,6 +327,60 @@ nn_errors <- data.frame(method = "Neural Network",
 total_results <- rbind(log_errors, lda_errors, qda_errors, tree_errors, rf_errors, svm_errors, nn_errors)
 
 
+
+#looking at false positives, songs mistakenly identified as taylor swift
+fp_finder <- function(dataset){
+  na <- data.frame(artist_name = "", track_name = "")
+  df <- dataset %>%
+           filter((prediction == TRUE) & (correct == FALSE)) %>%
+           dplyr::select(artist_name, track_name) %>%
+           arrange(artist_name)
+  while (length(df[,1]) < 74) {
+  df <- rbind(df, na)
+}
+  return(df)
+}
+
+
+
+log_fp <- fp_finder(logistic_pred_all)
+lda_fp <- fp_finder(lda_pred_all)
+qda_fp <- fp_finder(qda_pred_all)
+tree_fp <- fp_finder(tree_pred_all)
+rf_fp <- fp_finder(rf_pred_all)
+svm_fp <- fp_finder(svm_pred_all)
+nn_fp <- fp_finder(nn_pred_all)
+
+false_positives_df <- cbind(log_fp, lda_fp, qda_fp, 
+                            tree_fp, rf_fp, svm_fp, nn_fp) 
+colnames(false_positives_df) <- c("artist", "      song",
+                                    "artist ", "     song",
+                                    "artist  ", "    song",
+                                    "artist   ", "   song",
+                                    "artist    ", "  song",
+                                    "artist     ", " song",
+                                    "artist      ", "song"
+                                    )
+
+
+false_positives_table <- false_positives_df %>%
+  gt() %>%
+  tab_spanner(label = "Logistic Regression", columns = c(1,2)) %>%
+  tab_spanner(label = "LDA", columns = c(3,4)) %>%
+  tab_spanner(label = "QDA", columns = c(5,6)) %>%
+  tab_spanner(label = "Classification Tree", columns = c(7,8)) %>%
+  tab_spanner(label = "Random Forest", columns = c(9,10)) %>%
+  tab_spanner(label = "Support Vector Machine", columns = c(11,12)) %>%
+  tab_spanner(label = "Neural Network", columns = c(13,14)) %>%
+  tab_header(title = "Songs misclassified as Taylor Swift Songs", subtitle = NULL)  %>%
+  data_color(columns = 1:2, colors = "#FAC9DC", apply_to = "fill") %>%
+  data_color(columns = 3:4, colors = "#FA7575", apply_to = "fill") %>%
+  data_color(columns = 5:6, colors = "#FF985E", apply_to = "fill") %>%
+  data_color(columns = 7:8, colors = "#F0D878", apply_to = "fill") %>%
+  data_color(columns = 9:10, colors = "#CAE8A2", apply_to = "fill") %>%
+  data_color(columns = 11:12, colors = "#B3C7EB", apply_to = "fill") %>%
+  data_color(columns = 13:14, colors = "#BFA7DB", apply_to = "fill")
+
 ```
 
 ```{r writing results, eval = FALSE}
@@ -336,6 +390,8 @@ write_csv(nn_pred_all, "nn_pred_all")
 save(neural_reg, file = "neural_reg.RData")
 #load("neural_reg.RData")
 
+#false positives data
+write_csv(false_positives_df, "false_positives_df")
 
 
 #results for each test, load into table
