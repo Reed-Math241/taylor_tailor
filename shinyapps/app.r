@@ -121,7 +121,7 @@ total_results_table <- total_results %>%
 
 
 
-alse_positives_df <- read_csv("shinyapps/horse_race_results/false_positives_df.csv")
+false_positives_df <- read_csv("horse_race_results/false_positives_df.csv")
 false_positives_table <- false_positives_df %>%
   gt() %>%
   tab_spanner(label = "Logistic Regression", columns = c(1,2)) %>%
