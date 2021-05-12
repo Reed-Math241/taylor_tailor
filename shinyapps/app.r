@@ -122,6 +122,17 @@ total_results_table <- total_results %>%
 
 
 false_positives_df <- read_csv("horse_race_results/false_positives_df.csv")
+
+false_positives_df[is.na(false_positives_df)]<-""
+colnames(false_positives_df) <- c("artist", "      song",
+                                  "artist ", "     song",
+                                  "artist  ", "    song",
+                                  "artist   ", "   song",
+                                  "artist    ", "  song",
+                                  "artist     ", " song",
+                                  "artist      ", "song"
+)
+
 false_positives_table <- false_positives_df %>%
   gt() %>%
   tab_spanner(label = "Logistic Regression", columns = c(1,2)) %>%
@@ -183,6 +194,8 @@ na <- data.frame(artist = "", album_name = "")
 c3 <- kmeans_df %>%
   filter(cluster == "lyrical and moody")
 c3 <- c3[,-1]
+c3 <- c3 %>%
+  arrange(artist)
 
 kmeans_df <- kmeans_df %>%
   arrange(artist)

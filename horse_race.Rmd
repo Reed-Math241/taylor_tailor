@@ -393,6 +393,8 @@ save(neural_reg, file = "neural_reg.RData")
 #false positives data
 write_csv(false_positives_df, "false_positives_df.csv")
 
+false_positives_df2 <- read_csv("shinyapps/horse_race_results/false_positives_df.csv", na = "")
+false_positives_df2[is.na(false_positives_df2)]<-""
 
 #results for each test, load into table
 #logistic regression
